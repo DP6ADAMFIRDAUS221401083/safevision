@@ -12,4 +12,14 @@ class AuthService {
       password: password,
     );
   }
+
+  Future<UserCredential> loginWithEmailAndPassword({
+    required String email,
+    required String password,
+  }) async {
+    return await _auth.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+  }
 }
