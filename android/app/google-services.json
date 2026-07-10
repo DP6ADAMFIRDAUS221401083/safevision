@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "735101162067",
+    "project_id": "mobile-skripsi",
+    "storage_bucket": "mobile-skripsi.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:735101162067:android:3a50e722a50ecfcee5eca6",
+        "android_client_info": {
+          "package_name": "com.example.mobile_skripsi"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC_67AS-ewtlYFEEo3gX33oP6_JHyAKmvk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
