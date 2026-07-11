@@ -47,6 +47,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       await _authService.registerWithEmailAndPassword(
         email: email,
         password: password,
+        name: name,
       );
       
       if (mounted) {
@@ -64,7 +65,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _showSnackbar('Terjadi kesalahan: ${e.message}');
       }
     } catch (e) {
-      _showSnackbar('Terjadi kesalahan saat registrasi');
+      if (e.toString().contains('auth-success-firestore-failed')) {
+        _showSnackbar('Akun berhasil dibuat, tetapi profil gagal disimpan');
+        if (mounted) {
+          Navigator.pop(context);
+        }
+      } else {
+        _showSnackbar('Terjadi kesalahan saat registrasi');
+      }
     } finally {
       if (mounted) {
         setState(() {
