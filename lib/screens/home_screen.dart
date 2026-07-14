@@ -8,12 +8,8 @@ class HomeScreen extends StatelessWidget {
 
   void _logout(BuildContext context) async {
     await FirebaseAuth.instance.signOut();
-    if (context.mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-      );
-    }
+    // Setelah signOut berhasil, AuthGate akan mendeteksi perubahan stream
+    // dan otomatis mengembalikan layar ke LoginScreen.
   }
 
   void _showProfileDialog(BuildContext context, Map<String, dynamic> userData) {

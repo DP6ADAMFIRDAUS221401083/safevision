@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 import 'register_screen.dart';
-import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -35,13 +34,8 @@ class _LoginScreenState extends State<LoginScreen> {
         email: email,
         password: password,
       );
-      
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
-      }
+      // AuthGate akan secara otomatis mendeteksi perubahan status login
+      // dan mengarahkan pengguna ke HomeScreen tanpa perlu pushReplacement manual.
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {
         _showSnackbar('Email tidak ditemukan');
