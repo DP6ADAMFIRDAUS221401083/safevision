@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'login_screen.dart';
 import 'history_screen.dart';
+import 'face_list_page.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -44,6 +45,15 @@ class HomeScreen extends StatelessWidget {
       context,
       MaterialPageRoute(
         builder: (context) => HistoryScreen(),
+      ),
+    );
+  }
+
+  void _openFaceListPage(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const FaceListPage(),
       ),
     );
   }
@@ -191,13 +201,28 @@ class HomeScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 32),
 
-                      // Tombol Riwayat & Logout
+                      // Tombol Riwayat, Daftar Wajah, & Logout
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
                           onPressed: () => _openHistoryPage(context),
                           icon: const Icon(Icons.history),
                           label: const Text('Riwayat Deteksi'),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () => _openFaceListPage(context),
+                          icon: const Icon(Icons.face),
+                          label: const Text('Daftar Wajah'),
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
