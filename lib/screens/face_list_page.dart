@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/face_data.dart';
+import 'face_capture_page.dart';
 
 class FaceListPage extends StatefulWidget {
   const FaceListPage({Key? key}) : super(key: key);
@@ -24,9 +25,10 @@ class _FaceListPageState extends State<FaceListPage> {
           padding: const EdgeInsets.all(16.0),
           child: ElevatedButton(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Fitur akan dibuat pada Tahap 7.2'),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const FaceCapturePage(),
                 ),
               );
             },
