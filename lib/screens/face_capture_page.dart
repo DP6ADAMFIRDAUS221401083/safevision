@@ -3,7 +3,9 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 class FaceCapturePage extends StatefulWidget {
   const FaceCapturePage({Key? key}) : super(key: key);
 
@@ -112,14 +114,51 @@ class _FaceCapturePageState extends State<FaceCapturePage> {
       if (response.statusCode == 200) {
         var data = jsonDecode(response.body);
         if (data['success'] == true) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Wajah berhasil didaftarkan')),
-            );
-            setState(() {
-              _capturedImage = null;
-              _nameController.clear();
+          try {
+            User? user = FirebaseAuth.instance.currentUser;
+            if (user == null) {
+              throw Exception("User belum login");
+            }
+
+            String uid = user.uid;
+            String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+            String storagePath = 'faces/$uid/$timestamp.jpg';
+
+            // Upload ke Firebase Storage
+            File imageFile = File(_capturedImage!.path);
+            Reference storageRef = FirebaseStorage.instance.ref().child(storagePath);
+            UploadTask uploadTask = storageRef.putFile(imageFile);
+            TaskSnapshot snapshot = await uploadTask;
+            String imageUrl = await snapshot.ref.getDownloadURL();
+
+            // Simpan metadata ke Firestore
+            CollectionReference facesRef = FirebaseFirestore.instance
+                .collection('users')
+                .doc(uid)
+                .collection('faces');
+            
+            await facesRef.add({
+              'name': name,
+              'imageUrl': imageUrl,
+              'createdAt': FieldValue.serverTimestamp(),
             });
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Wajah berhasil didaftarkan.')),
+              );
+              setState(() {
+                _capturedImage = null;
+                _nameController.clear();
+              });
+              Navigator.pop(context);
+            }
+          } catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Gagal upload ke Firebase: $e')),
+              );
+            }
           }
         } else {
           if (mounted) {
