@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../models/face_data.dart';
 import 'face_capture_page.dart';
 
@@ -51,6 +54,101 @@ class _FaceListPageState extends State<FaceListPage> {
         errorMessage = "Gagal memuat data wajah: $e";
         isLoading = false;
       });
+    }
+  }
+
+  void _confirmDelete(FaceData face) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Hapus Wajah'),
+          content: Text('Apakah Anda yakin ingin menghapus wajah ${face.name}?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _deleteFace(face);
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text('Ya, Hapus', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteFace(FaceData face) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final response = await http.post(
+        Uri.parse('http://192.168.1.8:5000/delete-face'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'name': face.name}),
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          if (face.imageUrl.isNotEmpty) {
+            try {
+              Reference storageRef = FirebaseStorage.instance.refFromURL(face.imageUrl);
+              await storageRef.delete();
+            } catch (e) {
+              debugPrint('Gagal hapus file storage: $e');
+            }
+          }
+
+          User? user = FirebaseAuth.instance.currentUser;
+          if (user != null) {
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .collection('faces')
+                .doc(face.id)
+                .delete();
+          }
+
+          if (mounted) {
+            Navigator.pop(context); // Tutup loading
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Wajah berhasil dihapus.')),
+            );
+          }
+          _fetchFaces();
+        } else {
+          if (mounted) {
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(data['message'] ?? 'Gagal menghapus wajah')),
+            );
+          }
+        }
+      } else {
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error server: ${response.statusCode}')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Terjadi kesalahan: $e')),
+        );
+      }
     }
   }
 
@@ -193,6 +291,10 @@ class _FaceListPageState extends State<FaceListPage> {
                   ),
                 ],
               ),
+            ),
+            trailing: IconButton(
+              icon: const Icon(Icons.delete, color: Colors.red),
+              onPressed: () => _confirmDelete(face),
             ),
           ),
         );
