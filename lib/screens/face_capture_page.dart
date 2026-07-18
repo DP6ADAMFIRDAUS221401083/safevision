@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class FaceCapturePage extends StatefulWidget {
   const FaceCapturePage({Key? key}) : super(key: key);
@@ -14,6 +16,8 @@ class _FaceCapturePageState extends State<FaceCapturePage> {
   List<CameraDescription>? _cameras;
   XFile? _capturedImage;
   bool _isCameraInitialized = false;
+  final TextEditingController _nameController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -73,7 +77,77 @@ class _FaceCapturePageState extends State<FaceCapturePage> {
   @override
   void dispose() {
     _cameraController?.dispose();
+    _nameController.dispose();
     super.dispose();
+  }
+
+  Future<void> _registerFace() async {
+    final String name = _nameController.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nama tidak boleh kosong')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('http://192.168.1.8:5000/register-face'),
+      );
+      
+      request.fields['name'] = name;
+      request.files.add(await http.MultipartFile.fromPath(
+        'image',
+        _capturedImage!.path,
+      ));
+
+      var streamedResponse = await request.send().timeout(const Duration(seconds: 30));
+      var response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        var data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Wajah berhasil didaftarkan')),
+            );
+            setState(() {
+              _capturedImage = null;
+              _nameController.clear();
+            });
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(data['message'] ?? 'Gagal mendaftarkan wajah')),
+            );
+          }
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error server: ${response.statusCode}')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal menghubungi server. Pastikan Flask berjalan.')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -159,38 +233,46 @@ class _FaceCapturePageState extends State<FaceCapturePage> {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              ElevatedButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _capturedImage = null;
-                  });
-                },
-                icon: const Icon(Icons.refresh),
-                label: const Text('Ambil Ulang'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                ),
-              ),
-              ElevatedButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Tahap 7.3 akan mengirim foto ke Flask.'),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.check),
-                label: const Text('Gunakan Foto'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                ),
-              ),
-            ],
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: TextField(
+            controller: _nameController,
+            decoration: const InputDecoration(
+              labelText: 'Masukkan Nama',
+              border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.person),
+            ),
           ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _capturedImage = null;
+                          _nameController.clear();
+                        });
+                      },
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Ambil Ulang'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      ),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: _registerFace,
+                      icon: const Icon(Icons.check),
+                      label: const Text('Daftar Wajah'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      ),
+                    ),
+                  ],
+                ),
         ),
       ],
     );
