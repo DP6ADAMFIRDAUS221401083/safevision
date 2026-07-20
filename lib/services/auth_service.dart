@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -26,6 +27,8 @@ class AuthService {
         'role': 'user',
         'isActive': true,
       });
+      // Save FCM Token
+      await _saveFCMToken(userCredential.user!.uid);
     } catch (e) {
       // Throw custom exception if firestore fails
       throw Exception('auth-success-firestore-failed');
@@ -38,9 +41,28 @@ class AuthService {
     required String email,
     required String password,
   }) async {
-    return await _auth.signInWithEmailAndPassword(
+    UserCredential userCredential = await _auth.signInWithEmailAndPassword(
       email: email,
       password: password,
     );
+    
+    // Save FCM Token on successful login
+    await _saveFCMToken(userCredential.user!.uid);
+    
+    return userCredential;
+  }
+
+  Future<void> _saveFCMToken(String uid) async {
+    try {
+      String? token = await FirebaseMessaging.instance.getToken();
+      if (token != null) {
+        await _firestore.collection('users').doc(uid).update({
+          'fcmToken': token,
+          'tokenUpdatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    } catch (e) {
+      print('Failed to save FCM token: $e');
+    }
   }
 }

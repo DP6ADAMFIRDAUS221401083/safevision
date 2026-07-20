@@ -1,5 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
@@ -45,6 +47,21 @@ class _MyAppState extends State<MyApp> {
     // Mengambil dan mencetak FCM Token
     String? token = await messaging.getToken();
     print('FCM Token: $token');
+
+    // Listener untuk memperbarui token jika berubah (onTokenRefresh)
+    messaging.onTokenRefresh.listen((newToken) async {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        try {
+          await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+            'fcmToken': newToken,
+            'tokenUpdatedAt': FieldValue.serverTimestamp(),
+          });
+        } catch (e) {
+          print('Error updating token on refresh: $e');
+        }
+      }
+    });
 
     // Listener untuk menerima notifikasi ketika aplikasi sedang dibuka (foreground)
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
