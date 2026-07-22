@@ -70,12 +70,15 @@ class _MyAppState extends State<MyApp> {
       print('Foreground notification received');
       if (message.data.containsKey('alertId')) {
         print('Alert ID: ${message.data['alertId']}');
+      } else {
+        print('alertId tidak ditemukan.');
       }
 
       if (message.notification != null) {
         _showNotificationDialog(
           message.notification!.title,
           message.notification!.body,
+          message.data['alertId'],
         );
       }
     });
@@ -85,8 +88,9 @@ class _MyAppState extends State<MyApp> {
       print('Background notification opened');
       if (message.data.containsKey('alertId')) {
         final alertId = message.data['alertId'];
-        print('Alert ID: $alertId');
         _navigateToDetailAlert(alertId);
+      } else {
+        print('alertId tidak ditemukan.');
       }
     });
 
@@ -96,35 +100,32 @@ class _MyAppState extends State<MyApp> {
       print('Terminated notification opened');
       if (initialMessage.data.containsKey('alertId')) {
         final alertId = initialMessage.data['alertId'];
-        print('Alert ID: $alertId');
         // Tunggu splash screen selesai (3 detik) sebelum navigasi
         Future.delayed(const Duration(seconds: 4), () {
           _navigateToDetailAlert(alertId);
         });
+      } else {
+        print('alertId tidak ditemukan.');
       }
     }
   }
 
-  void _navigateToDetailAlert(String alertId) async {
-    try {
-      final alert = await FirestoreService().getAlert(alertId);
-      if (alert != null) {
-        final context = navigatorKey.currentContext;
-        if (context != null) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => DetailAlertScreen(alert: alert),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      print('Error navigating to Detail Alert: $e');
+  void _navigateToDetailAlert(String alertId) {
+    print('Opening DetailAlertScreen');
+    print('Alert ID: $alertId');
+    final context = navigatorKey.currentContext;
+    if (context != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => DetailAlertScreen(alertId: alertId),
+        ),
+      );
+      print('Navigation success');
     }
   }
 
-  void _showNotificationDialog(String? title, String? body) {
+  void _showNotificationDialog(String? title, String? body, String? alertId) {
     final context = navigatorKey.currentContext;
     if (context != null) {
       showDialog(
@@ -135,8 +136,16 @@ class _MyAppState extends State<MyApp> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('OK'),
+              child: const Text('Tutup'),
             ),
+            if (alertId != null)
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _navigateToDetailAlert(alertId);
+                },
+                child: const Text('Buka'),
+              ),
           ],
         ),
       );

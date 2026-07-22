@@ -4,38 +4,93 @@ import '../models/alert_model.dart';
 import '../services/firestore_service.dart';
 
 class DetailAlertScreen extends StatefulWidget {
-  final AlertModel alert;
+  final AlertModel? alert;
+  final String? alertId;
 
-  const DetailAlertScreen({super.key, required this.alert});
+  const DetailAlertScreen({super.key, this.alert, this.alertId});
 
   @override
   State<DetailAlertScreen> createState() => _DetailAlertScreenState();
 }
 
 class _DetailAlertScreenState extends State<DetailAlertScreen> {
+  AlertModel? _alert;
+  bool _isLoading = false;
+  String? _errorMessage;
+
   @override
   void initState() {
     super.initState();
-    // Jika belum dibaca, tandai menjadi sudah dibaca di backend Firestore
-    if (!widget.alert.read) {
-      FirestoreService().markAsRead(widget.alert.id);
+    if (widget.alert != null) {
+      _alert = widget.alert;
+      _markAsRead();
+    } else if (widget.alertId != null) {
+      _fetchAlert(widget.alertId!);
+    } else {
+      _errorMessage = 'Data tidak valid';
+    }
+  }
+
+  void _markAsRead() {
+    if (_alert != null && !_alert!.read) {
+      FirestoreService().markAsRead(_alert!.id);
+    }
+  }
+
+  Future<void> _fetchAlert(String id) async {
+    setState(() => _isLoading = true);
+    try {
+      final fetchedAlert = await FirestoreService().getAlert(id);
+      if (mounted) {
+        setState(() {
+          _alert = fetchedAlert;
+          if (_alert == null) {
+            _errorMessage = 'Alert tidak ditemukan';
+          }
+          _isLoading = false;
+        });
+        if (_alert != null) _markAsRead();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Gagal memuat alert';
+          _isLoading = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Detail Alert')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_errorMessage != null || _alert == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Detail Alert')),
+        body: Center(child: Text(_errorMessage ?? 'Terjadi kesalahan')),
+      );
+    }
+
+    final alert = _alert!;
+
     // Format nilai confidence
-    final confidencePercent = widget.alert.confidence <= 1.0 
-        ? (widget.alert.confidence * 100).toInt() 
-        : widget.alert.confidence.toInt();
+    final confidencePercent = alert.confidence <= 1.0 
+        ? (alert.confidence * 100).toInt() 
+        : alert.confidence.toInt();
 
     // Format tanggal
     String formattedDate = '-';
-    if (widget.alert.createdAt != null) {
-      formattedDate = DateFormat('dd MMM yyyy HH:mm').format(widget.alert.createdAt!);
+    if (alert.createdAt != null) {
+      formattedDate = DateFormat('dd MMM yyyy HH:mm').format(alert.createdAt!);
     }
 
-    final isDanger = widget.alert.status == 'danger';
+    final isDanger = alert.status == 'danger';
 
     return Scaffold(
       appBar: AppBar(
@@ -49,7 +104,7 @@ class _DetailAlertScreenState extends State<DetailAlertScreen> {
             // Area Gambar
             Card(
               clipBehavior: Clip.antiAlias,
-              child: widget.alert.imageUrl.isEmpty
+              child: alert.imageUrl.isEmpty
                   ? Padding(
                       padding: const EdgeInsets.all(32.0),
                       child: Column(
@@ -64,7 +119,7 @@ class _DetailAlertScreenState extends State<DetailAlertScreen> {
                       ),
                     )
                   : Image.network(
-                      widget.alert.imageUrl,
+                      alert.imageUrl,
                       fit: BoxFit.cover,
                       loadingBuilder: (context, child, loadingProgress) {
                         if (loadingProgress == null) return child;
@@ -114,7 +169,7 @@ class _DetailAlertScreenState extends State<DetailAlertScreen> {
                             size: 18,
                           ),
                           label: Text(
-                            widget.alert.status.toUpperCase(),
+                            alert.status.toUpperCase(),
                             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                           ),
                           backgroundColor: isDanger ? Colors.red : Colors.green,
@@ -125,7 +180,7 @@ class _DetailAlertScreenState extends State<DetailAlertScreen> {
                     ListTile(
                       contentPadding: EdgeInsets.zero,
                       title: const Text('Message', style: TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text(widget.alert.message, style: const TextStyle(fontSize: 16)),
+                      subtitle: Text(alert.message, style: const TextStyle(fontSize: 16)),
                     ),
                     const Divider(height: 24),
                     ListTile(
@@ -144,7 +199,7 @@ class _DetailAlertScreenState extends State<DetailAlertScreen> {
                       contentPadding: EdgeInsets.zero,
                       title: const Text('Status Read', style: TextStyle(fontWeight: FontWeight.bold)),
                       subtitle: Text(
-                        widget.alert.read ? 'Sudah Dibaca' : 'Belum Dibaca (Ditandai dibaca sekarang)',
+                        alert.read ? 'Sudah Dibaca' : 'Belum Dibaca (Ditandai dibaca sekarang)',
                         style: const TextStyle(fontSize: 16),
                       ),
                     ),
