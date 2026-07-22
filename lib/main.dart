@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
 import 'screens/splash_screen.dart';
+import 'screens/detail_alert_screen.dart';
+import 'services/firestore_service.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -65,6 +67,11 @@ class _MyAppState extends State<MyApp> {
 
     // Listener untuk menerima notifikasi ketika aplikasi sedang dibuka (foreground)
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print('Foreground notification received');
+      if (message.data.containsKey('alertId')) {
+        print('Alert ID: ${message.data['alertId']}');
+      }
+
       if (message.notification != null) {
         _showNotificationDialog(
           message.notification!.title,
@@ -72,6 +79,49 @@ class _MyAppState extends State<MyApp> {
         );
       }
     });
+
+    // Listener untuk menangani notifikasi yang ditekan dari background
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      print('Background notification opened');
+      if (message.data.containsKey('alertId')) {
+        final alertId = message.data['alertId'];
+        print('Alert ID: $alertId');
+        _navigateToDetailAlert(alertId);
+      }
+    });
+
+    // Menangani notifikasi jika aplikasi dibuka dari kondisi terminated
+    RemoteMessage? initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+    if (initialMessage != null) {
+      print('Terminated notification opened');
+      if (initialMessage.data.containsKey('alertId')) {
+        final alertId = initialMessage.data['alertId'];
+        print('Alert ID: $alertId');
+        // Tunggu splash screen selesai (3 detik) sebelum navigasi
+        Future.delayed(const Duration(seconds: 4), () {
+          _navigateToDetailAlert(alertId);
+        });
+      }
+    }
+  }
+
+  void _navigateToDetailAlert(String alertId) async {
+    try {
+      final alert = await FirestoreService().getAlert(alertId);
+      if (alert != null) {
+        final context = navigatorKey.currentContext;
+        if (context != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DetailAlertScreen(alert: alert),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error navigating to Detail Alert: $e');
+    }
   }
 
   void _showNotificationDialog(String? title, String? body) {
