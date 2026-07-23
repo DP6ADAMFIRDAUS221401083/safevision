@@ -170,15 +170,27 @@ class _FaceListPageState extends State<FaceListPage> {
           // Refresh list after returning from capture page
           _fetchFaces();
         },
+        backgroundColor: Theme.of(context).primaryColor,
+        foregroundColor: Colors.black,
         icon: const Icon(Icons.add),
-        label: const Text('Tambah Wajah'),
+        label: Text('Tambah Wajah', style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.black, fontWeight: FontWeight.bold)),
       ),
     );
   }
 
   Widget _buildBody() {
+    final theme = Theme.of(context);
     if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text('Memuat Data...', style: theme.textTheme.labelMedium),
+          ],
+        ),
+      );
     }
 
     if (errorMessage != null) {
@@ -186,9 +198,9 @@ class _FaceListPageState extends State<FaceListPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            Icon(Icons.error_outline, size: 64, color: theme.colorScheme.error),
             const SizedBox(height: 16),
-            Text(errorMessage!, textAlign: TextAlign.center),
+            Text(errorMessage!, textAlign: TextAlign.center, style: theme.textTheme.bodySmall),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _fetchFaces,
@@ -205,38 +217,35 @@ class _FaceListPageState extends State<FaceListPage> {
 
     return RefreshIndicator(
       onRefresh: _fetchFaces,
+      color: theme.primaryColor,
       child: _buildList(),
     );
   }
 
   Widget _buildEmptyState() {
+    final theme = Theme.of(context);
     return RefreshIndicator(
       onRefresh: _fetchFaces,
+      color: theme.primaryColor,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           SizedBox(height: MediaQuery.of(context).size.height * 0.3),
-          const Icon(
+          Icon(
             Icons.face,
             size: 80,
-            color: Colors.grey,
+            color: theme.colorScheme.onSurface.withOpacity(0.2),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Belum ada wajah yang terdaftar',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+          Text(
+            'Belum Ada Wajah Terdaftar',
+            style: theme.textTheme.titleMedium,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Tambahkan wajah agar sistem dapat melakukan Face Recognition.',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
-            ),
+          Text(
+            'Tambahkan wajah agar sistem dapat mengenali Anda.',
+            style: theme.textTheme.bodySmall,
             textAlign: TextAlign.center,
           ),
         ],
@@ -245,8 +254,10 @@ class _FaceListPageState extends State<FaceListPage> {
   }
 
   Widget _buildList() {
+    final theme = Theme.of(context);
     return ListView.builder(
       physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(16),
       itemCount: faces.length,
       itemBuilder: (context, index) {
         final face = faces[index];
@@ -256,44 +267,41 @@ class _FaceListPageState extends State<FaceListPage> {
         }
 
         return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.only(bottom: 16),
           child: ListTile(
             contentPadding: const EdgeInsets.all(12),
             leading: CircleAvatar(
               radius: 30,
-              backgroundColor: Colors.grey[300],
+              backgroundColor: theme.scaffoldBackgroundColor,
               backgroundImage: face.imageUrl.isNotEmpty 
                   ? NetworkImage(face.imageUrl) 
                   : null,
-              child: face.imageUrl.isEmpty ? const Icon(Icons.person, color: Colors.white) : null,
+              child: face.imageUrl.isEmpty ? Icon(Icons.person, color: theme.colorScheme.onSurface.withOpacity(0.5)) : null,
               onBackgroundImageError: face.imageUrl.isNotEmpty
                   ? (exception, stackTrace) {
-                      // Placeholder if image fails to load (managed implicitly by not throwing, 
-                      // but we could also add a placeholder handling via a builder, for simplicity CircleAvatar handles it decently)
+                      // Placeholder if image fails to load
                     }
                   : null,
             ),
             title: Text(
-              face.name,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              face.name.toUpperCase(),
+              style: theme.textTheme.titleSmall,
             ),
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 8.0),
               child: Row(
                 children: [
-                  const Icon(Icons.access_time, size: 14, color: Colors.grey),
+                  Icon(Icons.access_time, size: 14, color: theme.textTheme.bodySmall?.color),
                   const SizedBox(width: 4),
                   Text(
                     dateStr,
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    style: theme.textTheme.labelSmall,
                   ),
                 ],
               ),
             ),
             trailing: IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
+              icon: Icon(Icons.delete_outline, color: theme.colorScheme.error),
               onPressed: () => _confirmDelete(face),
             ),
           ),

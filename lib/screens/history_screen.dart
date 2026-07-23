@@ -23,6 +23,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Riwayat Deteksi'),
@@ -38,10 +39,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
               key: const ValueKey('loading'),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Memuat riwayat...'),
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text('Memuat Data...', style: theme.textTheme.labelMedium),
                 ],
               ),
             );
@@ -51,11 +52,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.cloud_off, size: 80, color: Colors.grey),
+                  Icon(Icons.cloud_off, size: 80, color: theme.colorScheme.error.withOpacity(0.5)),
                   const SizedBox(height: 16),
-                  const Text('Terjadi kesalahan', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text('Terjadi Kesalahan', style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.error)),
                   const SizedBox(height: 8),
-                  const Text('Tidak dapat mengambil data.', style: TextStyle(color: Colors.grey)),
+                  Text('Tidak dapat memuat data.', style: theme.textTheme.bodySmall),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: _retry,
@@ -71,15 +72,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 padding: const EdgeInsets.all(32.0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.history_toggle_off, size: 80, color: Colors.grey),
-                    SizedBox(height: 16),
-                    Text('Belum ada riwayat', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 8),
+                  children: [
+                    Icon(Icons.history_toggle_off, size: 80, color: theme.colorScheme.onSurface.withOpacity(0.2)),
+                    const SizedBox(height: 16),
+                    Text('Belum Ada Riwayat', style: theme.textTheme.titleMedium),
+                    const SizedBox(height: 8),
                     Text(
-                      'Riwayat deteksi akan muncul setelah sistem AI mendeteksi aktivitas.',
+                      'Riwayat peringatan akan muncul di sini.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey),
+                      style: theme.textTheme.bodySmall,
                     ),
                   ],
                 ),
@@ -89,37 +90,98 @@ class _HistoryScreenState extends State<HistoryScreen> {
             final alerts = snapshot.data!;
             content = ListView.builder(
               key: const ValueKey('data'),
+              padding: const EdgeInsets.all(16),
               itemCount: alerts.length,
               itemBuilder: (context, index) {
                 final alert = alerts[index];
                 
-                // Format confidence agar dapat menyesuaikan jika bernilai 0.xx atau puluhan (xx)
                 final confidencePercent = alert.confidence <= 1.0 
                     ? (alert.confidence * 100).toInt() 
                     : alert.confidence.toInt();
 
-                // Format createdAt menggunakan package intl
                 String formattedDate = '-';
                 if (alert.createdAt != null) {
                   formattedDate = DateFormat('dd MMM yyyy HH:mm').format(alert.createdAt!);
                 }
 
-                return ListTile(
-                  leading: Icon(
-                    alert.status == 'danger' ? Icons.warning : Icons.check_circle,
-                    color: alert.status == 'danger' ? Colors.red : Colors.green,
+                final bool isDanger = alert.status == 'danger';
+                final Color statusColor = isDanger ? theme.colorScheme.error : theme.primaryColor;
+                final IconData statusIcon = isDanger ? Icons.warning_amber_rounded : Icons.check_circle_outline;
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4),
+                    side: BorderSide(
+                      color: isDanger ? theme.colorScheme.error.withOpacity(0.5) : theme.colorScheme.surface,
+                      width: 1,
+                    ),
                   ),
-                  title: Text(alert.message),
-                  subtitle: Text('Confidence : $confidencePercent%\n$formattedDate'),
-                  isThreeLine: true,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => DetailAlertScreen(alert: alert),
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DetailAlertScreen(alert: alert),
+                        ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(4),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: theme.scaffoldBackgroundColor,
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: statusColor.withOpacity(0.3)),
+                            ),
+                            child: Icon(statusIcon, color: statusColor, size: 24),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  alert.message.toUpperCase(),
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    color: isDanger ? theme.colorScheme.error : theme.textTheme.titleSmall?.color,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Icon(Icons.analytics_outlined, size: 14, color: theme.textTheme.bodySmall?.color),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'AKURASI: $confidencePercent%',
+                                      style: theme.textTheme.labelSmall,
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Icon(Icons.access_time, size: 14, color: theme.textTheme.bodySmall?.color),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      formattedDate,
+                                      style: theme.textTheme.labelSmall,
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(Icons.chevron_right, color: theme.colorScheme.onSurface.withOpacity(0.3)),
+                        ],
                       ),
-                    );
-                  },
+                    ),
+                  ),
                 );
               },
             );

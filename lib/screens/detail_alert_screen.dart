@@ -63,38 +63,57 @@ class _DetailAlertScreenState extends State<DetailAlertScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Detail Alert')),
-        body: const Center(child: CircularProgressIndicator()),
+        appBar: AppBar(title: const Text('Detail Peringatan')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text('Memuat Data...', style: theme.textTheme.labelMedium),
+            ],
+          ),
+        ),
       );
     }
 
     if (_errorMessage != null || _alert == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Detail Alert')),
-        body: Center(child: Text(_errorMessage ?? 'Terjadi kesalahan')),
+        appBar: AppBar(title: const Text('Detail Peringatan')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Terjadi Kesalahan', style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.error)),
+              const SizedBox(height: 8),
+              Text(_errorMessage ?? 'Kesalahan tidak diketahui', style: theme.textTheme.bodySmall),
+            ],
+          ),
+        ),
       );
     }
 
     final alert = _alert!;
 
-    // Format nilai confidence
     final confidencePercent = alert.confidence <= 1.0 
         ? (alert.confidence * 100).toInt() 
         : alert.confidence.toInt();
 
-    // Format tanggal
     String formattedDate = '-';
     if (alert.createdAt != null) {
-      formattedDate = DateFormat('dd MMM yyyy HH:mm').format(alert.createdAt!);
+      formattedDate = DateFormat('dd MMM yyyy HH:mm:ss').format(alert.createdAt!);
     }
 
     final isDanger = alert.status == 'danger';
+    final statusColor = isDanger ? theme.colorScheme.error : theme.primaryColor;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Detail Alert'),
+        title: const Text('Detail Peringatan'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -102,107 +121,129 @@ class _DetailAlertScreenState extends State<DetailAlertScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Area Gambar
-            Card(
-              clipBehavior: Clip.antiAlias,
-              child: alert.imageUrl.isEmpty
-                  ? Padding(
-                      padding: const EdgeInsets.all(32.0),
-                      child: Column(
-                        children: const [
-                          Icon(Icons.image_not_supported, size: 80, color: Colors.grey),
-                          SizedBox(height: 16),
-                          Text(
-                            'Belum ada gambar bukti',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    )
-                  : Image.network(
-                      alert.imageUrl,
-                      fit: BoxFit.cover,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Padding(
-                          padding: const EdgeInsets.all(32.0),
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                                  : null,
+            Container(
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                border: Border.all(color: theme.colorScheme.surface),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: alert.imageUrl.isEmpty
+                        ? Padding(
+                            padding: const EdgeInsets.all(32.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.image_not_supported, size: 64, color: theme.colorScheme.onSurface.withOpacity(0.2)),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Gambar Tidak Tersedia',
+                                  style: theme.textTheme.labelMedium,
+                                ),
+                              ],
+                            ),
+                          )
+                        : AspectRatio(
+                            aspectRatio: 4 / 3,
+                            child: Image.network(
+                              alert.imageUrl,
+                              fit: BoxFit.cover,
+                              loadingBuilder: (context, child, loadingProgress) {
+                                if (loadingProgress == null) return child;
+                                return Center(
+                                  child: CircularProgressIndicator(
+                                    value: loadingProgress.expectedTotalBytes != null
+                                        ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                        : null,
+                                  ),
+                                );
+                              },
+                              errorBuilder: (context, error, stackTrace) => Padding(
+                                padding: const EdgeInsets.all(32.0),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.broken_image, size: 64, color: theme.colorScheme.error.withOpacity(0.5)),
+                                    const SizedBox(height: 16),
+                                    Text('Gagal Memuat Gambar', style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.error)),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) => Padding(
-                        padding: const EdgeInsets.all(32.0),
-                        child: Column(
-                          children: const [
-                            Icon(Icons.broken_image, size: 80, color: Colors.grey),
-                            SizedBox(height: 16),
-                            Text('Gagal memuat gambar', style: TextStyle(color: Colors.grey)),
+                  ),
+                  // Frame decorations
+                  Positioned(
+                    top: 10, left: 10,
+                    child: Container(width: 20, height: 20, decoration: BoxDecoration(border: Border(top: BorderSide(color: statusColor, width: 2), left: BorderSide(color: statusColor, width: 2)))),
+                  ),
+                  Positioned(
+                    top: 10, right: 10,
+                    child: Container(width: 20, height: 20, decoration: BoxDecoration(border: Border(top: BorderSide(color: statusColor, width: 2), right: BorderSide(color: statusColor, width: 2)))),
+                  ),
+                  Positioned(
+                    bottom: 10, left: 10,
+                    child: Container(width: 20, height: 20, decoration: BoxDecoration(border: Border(bottom: BorderSide(color: statusColor, width: 2), left: BorderSide(color: statusColor, width: 2)))),
+                  ),
+                  Positioned(
+                    bottom: 10, right: 10,
+                    child: Container(width: 20, height: 20, decoration: BoxDecoration(border: Border(bottom: BorderSide(color: statusColor, width: 2), right: BorderSide(color: statusColor, width: 2)))),
+                  ),
+                  // REC Badge
+                  if (alert.imageUrl.isNotEmpty)
+                    Positioned(
+                      top: 14, right: 14,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.7),
+                          border: Border.all(color: statusColor.withOpacity(0.4)),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 6, height: 6,
+                              decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
+                            ),
+                            const SizedBox(width: 6),
+                            Text('REKAM', style: theme.textTheme.labelSmall?.copyWith(color: statusColor, fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ),
                     ),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
             
             // Area Informasi Detail
             Card(
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(24.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Status',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        Chip(
-                          avatar: Icon(
-                            isDanger ? Icons.warning : Icons.check_circle,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                          label: Text(
-                            alert.status.toUpperCase(),
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                          ),
-                          backgroundColor: isDanger ? Colors.red : Colors.green,
-                        ),
-                      ],
-                    ),
+                    Text('Laporan Kejadian', style: theme.textTheme.labelLarge),
+                    const SizedBox(height: 24),
+                    
+                    _buildDetailRow(theme, 'Status', alert.status.toUpperCase(), valueColor: statusColor),
                     const Divider(height: 24),
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Message', style: TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text(alert.message, style: const TextStyle(fontSize: 16)),
-                    ),
+                    
+                    _buildDetailRow(theme, 'Klasifikasi', alert.message.toUpperCase()),
                     const Divider(height: 24),
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Confidence', style: TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text('$confidencePercent%', style: const TextStyle(fontSize: 16)),
-                    ),
+                    
+                    _buildDetailRow(theme, 'Akurasi', '$confidencePercent%'),
                     const Divider(height: 24),
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Waktu Deteksi', style: TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text(formattedDate, style: const TextStyle(fontSize: 16)),
-                    ),
+                    
+                    _buildDetailRow(theme, 'Waktu', formattedDate),
                     const Divider(height: 24),
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Status Read', style: TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text(
-                        alert.read ? 'Sudah Dibaca' : 'Belum Dibaca (Ditandai dibaca sekarang)',
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                    ),
+                    
+                    _buildDetailRow(theme, 'Status Laporan', alert.read ? 'Sudah Dibaca' : 'Belum Dibaca'),
                   ],
                 ),
               ),
@@ -210,6 +251,20 @@ class _DetailAlertScreenState extends State<DetailAlertScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildDetailRow(ThemeData theme, String label, String value, {Color? valueColor}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: theme.textTheme.labelSmall),
+        const SizedBox(height: 4),
+        Text(value, style: theme.textTheme.bodyLarge?.copyWith(
+          fontFamily: 'Space Mono',
+          color: valueColor ?? theme.textTheme.bodyLarge?.color,
+        )),
+      ],
     );
   }
 }

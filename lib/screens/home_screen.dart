@@ -63,19 +63,40 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final User? user = FirebaseAuth.instance.currentUser;
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SafeVision'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                color: theme.primaryColor,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: theme.primaryColor,
+                    blurRadius: 8,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Text('SAFEVISION'),
+          ],
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: Icon(Icons.logout, color: theme.colorScheme.error),
             onPressed: () => _logout(context),
           ),
         ],
       ),
       body: user == null
-          ? const Center(child: Text('Tidak ada pengguna yang login'))
+          ? Center(child: Text('Tidak ada pengguna yang login', style: theme.textTheme.bodyLarge))
           : FutureBuilder<DocumentSnapshot>(
               future: FirebaseFirestore.instance.collection('users').doc(user.uid).get(),
               builder: (context, snapshot) {
@@ -84,11 +105,11 @@ class HomeScreen extends StatelessWidget {
                 }
 
                 if (snapshot.hasError) {
-                  return const Center(child: Text('Terjadi kesalahan saat memuat data'));
+                  return Center(child: Text('Terjadi kesalahan saat memuat data', style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.error)));
                 }
 
                 if (!snapshot.hasData || !snapshot.data!.exists) {
-                  return const Center(child: Text('Data pengguna tidak ditemukan'));
+                  return Center(child: Text('Data pengguna tidak ditemukan', style: theme.textTheme.bodyLarge));
                 }
 
                 final userData = snapshot.data!.data() as Map<String, dynamic>;
@@ -96,40 +117,36 @@ class HomeScreen extends StatelessWidget {
                 final String email = userData['email'] ?? 'Tidak ada email';
 
                 return SingleChildScrollView(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(24.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Sapaan
                       Text(
-                        'Selamat Datang, $name',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                        'Halo, ${name.toUpperCase()}',
+                        style: theme.textTheme.titleMedium?.copyWith(color: theme.primaryColor),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         email,
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: Colors.grey[600],
-                            ),
+                        style: theme.textTheme.labelMedium,
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 32),
 
                       // Status Sistem
                       _buildStatusCard(
                         context,
                         title: 'Status Sistem',
-                        value: 'Online',
-                        icon: Icons.check_circle,
-                        color: Colors.green,
+                        value: 'Aktif & Aman',
+                        icon: Icons.check_circle_outline,
+                        color: theme.primaryColor,
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 32),
 
                       // Statistik
-                      const Text(
-                        'Ringkasan',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      Text(
+                        'Ringkasan Sistem',
+                        style: theme.textTheme.labelLarge,
                       ),
                       const SizedBox(height: 16),
                       StreamBuilder<List<AlertModel>>(
@@ -163,45 +180,41 @@ class HomeScreen extends StatelessWidget {
                             mainAxisSpacing: 16,
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
+                            childAspectRatio: 1.2,
                             children: [
                               _buildStatCard(
                                 context,
-                                title: 'Notifikasi Hari Ini',
+                                title: 'Pemberitahuan',
                                 value: notifToday.toString(),
-                                icon: Icons.notifications,
-                                color: Colors.blue,
+                                color: theme.colorScheme.secondary,
                               ),
                               _buildStatCard(
                                 context,
-                                title: 'Deteksi Hari Ini',
+                                title: 'Deteksi',
                                 value: detectionToday.toString(),
-                                icon: Icons.remove_red_eye,
-                                color: Colors.orange,
+                                color: theme.primaryColor,
                               ),
                               _buildStatCard(
                                 context,
-                                title: 'Kejadian Berbahaya',
+                                title: 'Peringatan',
                                 value: dangerToday.toString(),
-                                icon: Icons.warning,
-                                color: Colors.red,
+                                color: theme.colorScheme.error,
                               ),
                               Card(
-                                elevation: 2,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                                 child: InkWell(
                                   onTap: () => _showProfileDialog(context, userData),
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: const Padding(
-                                    padding: EdgeInsets.all(16.0),
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(12.0),
                                     child: Column(
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
-                                        Icon(Icons.person, size: 40, color: Colors.purple),
-                                        SizedBox(height: 8),
+                                        Icon(Icons.person, size: 32, color: theme.textTheme.bodyLarge?.color),
+                                        const SizedBox(height: 8),
                                         Text(
                                           'Profil',
                                           textAlign: TextAlign.center,
-                                          style: TextStyle(fontWeight: FontWeight.bold),
+                                          style: theme.textTheme.labelSmall,
                                         ),
                                       ],
                                     ),
@@ -214,37 +227,24 @@ class HomeScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 32),
 
-                      // Tombol Riwayat, Daftar Wajah, & Logout
+                      // Tombol Riwayat & Daftar Wajah
                       SizedBox(
                         width: double.infinity,
-                        child: ElevatedButton.icon(
+                        child: OutlinedButton.icon(
                           onPressed: () => _openHistoryPage(context),
-                          icon: const Icon(Icons.history),
+                          icon: const Icon(Icons.history, size: 18),
                           label: const Text('Riwayat Deteksi'),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
-                        child: ElevatedButton.icon(
+                        child: OutlinedButton.icon(
                           onPressed: () => _openFaceListPage(context),
-                          icon: const Icon(Icons.face),
+                          icon: const Icon(Icons.face, size: 18),
                           label: const Text('Daftar Wajah'),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
                         ),
                       ),
-
                     ],
                   ),
                 );
@@ -254,32 +254,36 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildStatusCard(BuildContext context, {required String title, required String value, required IconData icon, required Color color}) {
+    final theme = Theme.of(context);
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Row(
-              children: [
-                Icon(icon, color: color, size: 24),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                border: Border.all(color: color.withOpacity(0.5)),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Icon(icon, color: color, size: 24),
             ),
-            const SizedBox(height: 12),
-            Text(
-              value,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.bold,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: theme.textTheme.labelSmall,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    style: theme.textTheme.titleSmall?.copyWith(color: color),
+                  ),
+                ],
               ),
             ),
           ],
@@ -288,26 +292,26 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCard(BuildContext context, {required String title, required String value, required IconData icon, required Color color}) {
+  Widget _buildStatCard(BuildContext context, {required String title, required String value, required Color color}) {
+    final theme = Theme.of(context);
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(12.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Icon(icon, size: 40, color: color),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
             Text(
               title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12),
+              style: theme.textTheme.labelSmall,
+            ),
+            Text(
+              value,
+              style: theme.textTheme.headlineMedium?.copyWith(
+                color: color,
+                fontFamily: 'Space Mono',
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),

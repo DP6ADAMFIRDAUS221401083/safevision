@@ -200,8 +200,18 @@ class _FaceCapturePageState extends State<FaceCapturePage> {
   }
 
   Widget _buildCameraPreview() {
+    final theme = Theme.of(context);
     if (!_isCameraInitialized || _cameraController == null) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text('Menyiapkan Kamera...', style: theme.textTheme.labelMedium),
+          ],
+        ),
+      );
     }
 
     return Stack(
@@ -209,6 +219,23 @@ class _FaceCapturePageState extends State<FaceCapturePage> {
         // Camera preview
         Positioned.fill(
           child: CameraPreview(_cameraController!),
+        ),
+        // Frame decorations
+        Positioned(
+          top: 20, left: 20,
+          child: Container(width: 30, height: 30, decoration: BoxDecoration(border: Border(top: BorderSide(color: theme.primaryColor, width: 3), left: BorderSide(color: theme.primaryColor, width: 3)))),
+        ),
+        Positioned(
+          top: 20, right: 20,
+          child: Container(width: 30, height: 30, decoration: BoxDecoration(border: Border(top: BorderSide(color: theme.primaryColor, width: 3), right: BorderSide(color: theme.primaryColor, width: 3)))),
+        ),
+        Positioned(
+          bottom: 120, left: 20,
+          child: Container(width: 30, height: 30, decoration: BoxDecoration(border: Border(bottom: BorderSide(color: theme.primaryColor, width: 3), left: BorderSide(color: theme.primaryColor, width: 3)))),
+        ),
+        Positioned(
+          bottom: 120, right: 20,
+          child: Container(width: 30, height: 30, decoration: BoxDecoration(border: Border(bottom: BorderSide(color: theme.primaryColor, width: 3), right: BorderSide(color: theme.primaryColor, width: 3)))),
         ),
         // Shutter button
         Align(
@@ -221,28 +248,24 @@ class _FaceCapturePageState extends State<FaceCapturePage> {
                 GestureDetector(
                   onTap: _takePicture,
                   child: Container(
-                    height: 80,
-                    width: 80,
+                    height: 70,
+                    width: 70,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 4),
-                      color: Colors.white.withOpacity(0.5),
+                      border: Border.all(color: theme.primaryColor, width: 2),
+                      color: theme.scaffoldBackgroundColor.withOpacity(0.8),
                     ),
-                    child: const Icon(
-                      Icons.camera_alt,
-                      color: Colors.white,
-                      size: 40,
+                    child: Icon(
+                      Icons.camera,
+                      color: theme.primaryColor,
+                      size: 32,
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
-                const Text(
+                const SizedBox(height: 12),
+                Text(
                   'Ambil Foto',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    shadows: [Shadow(color: Colors.black, blurRadius: 4)],
-                  ),
+                  style: theme.textTheme.labelSmall?.copyWith(color: theme.primaryColor, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -253,61 +276,74 @@ class _FaceCapturePageState extends State<FaceCapturePage> {
   }
 
   Widget _buildImagePreview() {
+    final theme = Theme.of(context);
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Padding(
-          padding: EdgeInsets.all(16.0),
+        Padding(
+          padding: const EdgeInsets.all(16.0),
           child: Text(
-            'Foto berhasil diambil',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            'Foto Berhasil Diambil',
+            style: theme.textTheme.titleMedium,
+            textAlign: TextAlign.center,
           ),
         ),
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Image.file(
-              File(_capturedImage!.path),
-              fit: BoxFit.cover,
-            ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: TextField(
-            controller: _nameController,
-            decoration: const InputDecoration(
-              labelText: 'Masukkan Nama',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.person),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: theme.colorScheme.surface),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: Image.file(
+                  File(_capturedImage!.path),
+                  fit: BoxFit.cover,
+                ),
+              ),
             ),
           ),
         ),
         Padding(
           padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Nama Lengkap', style: theme.textTheme.labelMedium),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  hintText: 'Masukkan nama lengkap',
+                ),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
           child: _isLoading
               ? const Center(child: CircularProgressIndicator())
               : Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        setState(() {
-                          _capturedImage = null;
-                          _nameController.clear();
-                        });
-                      },
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Ambil Ulang'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          setState(() {
+                            _capturedImage = null;
+                            _nameController.clear();
+                          });
+                        },
+                        child: const Text('Ambil Ulang'),
                       ),
                     ),
-                    ElevatedButton.icon(
-                      onPressed: _registerFace,
-                      icon: const Icon(Icons.check),
-                      label: const Text('Daftar Wajah'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _registerFace,
+                        child: const Text('Simpan'),
                       ),
                     ),
                   ],

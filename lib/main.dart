@@ -8,6 +8,7 @@ import 'firebase_options.dart';
 import 'screens/splash_screen.dart';
 import 'screens/detail_alert_screen.dart';
 import 'services/firestore_service.dart';
+import 'theme/app_theme.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -158,6 +159,7 @@ class _MyAppState extends State<MyApp> {
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       title: 'SafeVision',
+      theme: AppTheme.darkTheme,
       home: const SplashScreen(),
     );
   }
