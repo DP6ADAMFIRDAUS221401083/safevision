@@ -15,14 +15,19 @@ class FirestoreService {
         throw Exception('User belum terautentikasi.');
       }
 
+      print('Listening Firestore stream...');
       return _db
           .collection('alerts')
           .where('userId', isEqualTo: userId)
           .orderBy('createdAt', descending: true)
           .snapshots()
-          .map((snapshot) => snapshot.docs
-              .map((doc) => AlertModel.fromFirestore(doc))
-              .toList());
+          .map((snapshot) {
+            print('New alert received');
+            print('Total alerts: ${snapshot.docs.length}');
+            return snapshot.docs
+                .map((doc) => AlertModel.fromFirestore(doc))
+                .toList();
+          });
     } catch (e) {
       print('Error di getAlerts: $e');
       return const Stream.empty();
