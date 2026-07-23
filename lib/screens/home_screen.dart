@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'login_screen.dart';
 import 'history_screen.dart';
 import 'face_list_page.dart';
+import '../services/firestore_service.dart';
+import '../models/alert_model.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -114,29 +116,13 @@ class HomeScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 24),
 
-                      // Status Sistem & AI Server
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildStatusCard(
-                              context,
-                              title: 'Status Sistem',
-                              value: 'Online',
-                              icon: Icons.check_circle,
-                              color: Colors.green,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildStatusCard(
-                              context,
-                              title: 'AI Server',
-                              value: 'Belum Terhubung',
-                              icon: Icons.error,
-                              color: Colors.redAccent,
-                            ),
-                          ),
-                        ],
+                      // Status Sistem
+                      _buildStatusCard(
+                        context,
+                        title: 'Status Sistem',
+                        value: 'Online',
+                        icon: Icons.check_circle,
+                        color: Colors.green,
                       ),
                       const SizedBox(height: 24),
 
@@ -146,58 +132,85 @@ class HomeScreen extends StatelessWidget {
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 16),
-                      GridView.count(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        children: [
-                          _buildStatCard(
-                            context,
-                            title: 'Notifikasi Hari Ini',
-                            value: '0',
-                            icon: Icons.notifications,
-                            color: Colors.blue,
-                          ),
-                          _buildStatCard(
-                            context,
-                            title: 'Deteksi Hari Ini',
-                            value: '0',
-                            icon: Icons.remove_red_eye,
-                            color: Colors.orange,
-                          ),
-                          _buildStatCard(
-                            context,
-                            title: 'Kejadian Berbahaya',
-                            value: '0',
-                            icon: Icons.warning,
-                            color: Colors.red,
-                          ),
-                          Card(
-                            elevation: 2,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            child: InkWell(
-                              onTap: () => _showProfileDialog(context, userData),
-                              borderRadius: BorderRadius.circular(16),
-                              child: const Padding(
-                                padding: EdgeInsets.all(16.0),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.person, size: 40, color: Colors.purple),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      'Profil',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(fontWeight: FontWeight.bold),
+                      StreamBuilder<List<AlertModel>>(
+                        stream: FirestoreService().getAlerts(),
+                        builder: (context, alertSnapshot) {
+                          int notifToday = 0;
+                          int detectionToday = 0;
+                          int dangerToday = 0;
+                          
+                          if (alertSnapshot.hasData) {
+                            final alerts = alertSnapshot.data!;
+                            final now = DateTime.now();
+                            for (var alert in alerts) {
+                              if (alert.createdAt != null) {
+                                if (alert.createdAt!.year == now.year &&
+                                    alert.createdAt!.month == now.month &&
+                                    alert.createdAt!.day == now.day) {
+                                  notifToday++;
+                                  detectionToday++;
+                                }
+                              }
+                              if (alert.status == 'danger') {
+                                dangerToday++;
+                              }
+                            }
+                          }
+
+                          return GridView.count(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            children: [
+                              _buildStatCard(
+                                context,
+                                title: 'Notifikasi Hari Ini',
+                                value: notifToday.toString(),
+                                icon: Icons.notifications,
+                                color: Colors.blue,
+                              ),
+                              _buildStatCard(
+                                context,
+                                title: 'Deteksi Hari Ini',
+                                value: detectionToday.toString(),
+                                icon: Icons.remove_red_eye,
+                                color: Colors.orange,
+                              ),
+                              _buildStatCard(
+                                context,
+                                title: 'Kejadian Berbahaya',
+                                value: dangerToday.toString(),
+                                icon: Icons.warning,
+                                color: Colors.red,
+                              ),
+                              Card(
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                child: InkWell(
+                                  onTap: () => _showProfileDialog(context, userData),
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: const Padding(
+                                    padding: EdgeInsets.all(16.0),
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.person, size: 40, color: Colors.purple),
+                                        SizedBox(height: 8),
+                                        Text(
+                                          'Profil',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
                                     ),
-                                  ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          ),
-                        ],
+                            ],
+                          );
+                        }
                       ),
                       const SizedBox(height: 32),
 
@@ -231,21 +244,7 @@ class HomeScreen extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: () => _logout(context),
-                          icon: const Icon(Icons.logout),
-                          label: const Text('Logout'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
+
                     ],
                   ),
                 );
